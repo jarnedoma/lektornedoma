@@ -33,7 +33,7 @@ export default async function BookingsList({ searchParams }: { searchParams: Pro
             <td className="px-4 py-3 font-semibold whitespace-nowrap"><Link href={`/admin/rezervace/${b.id}`} className="hover:text-m365-700">{dateRange(b.dateFrom, b.dateTo)}</Link></td>
             <td className="px-4 py-3">{b.company || b.contactName}</td>
             <td className="px-4 py-3 text-slate-600">{b.courseTitle}</td>
-            <td className="px-4 py-3 text-slate-600">{b.location}{b.isOnline ? " (online)" : ""}</td>
+            <td className="px-4 py-3 text-slate-600"><span className="font-medium text-ink-950">{b.city}</span>{b.location && <div className="text-xs">{b.location}</div>}</td>
             <td className="px-4 py-3 whitespace-nowrap">{b.fee ? price(b.fee) : "—"}</td>
             <td className="px-4 py-3"><StatusBadge map={BOOKING_STATUSES} value={b.status} /></td>
           </tr>

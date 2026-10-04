@@ -25,7 +25,7 @@ const STATE_TEXT: Record<DayState, string> = {
   past: "Minulost",
   off: "Nedostupné (víkend)",
 };
-const MANUAL_LABEL: Record<string, string> = { free: "Ručně: volno", busy: "Ručně: obsazeno", pending: "Ručně: zablokováno" };
+const MANUAL_LABEL: Record<string, string> = { free: "Ručně: volno", busy: "Ručně: obsazeno", pending: "Ručně: zablokováno", auto: "" };
 
 export default async function AdminCalendar({ searchParams }: { searchParams: Promise<{ mesic?: string; den?: string }> }) {
   const sp = await searchParams;
@@ -96,12 +96,22 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                     {Number(d.date.slice(8))}
                   </span>
                   {d.state === "off" && !d.bookings.length && <span className="ml-1 text-[10px] text-slate-400">víkend</span>}
-                  {d.manual && (
+                  {d.city && (
+                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-m365-700" title={d.city}>
+                      📍 {d.city}
+                    </span>
+                  )}
+                  {d.manual && (d.manual.status !== "auto" || d.manual.note) && (
                     <span className="mt-0.5 block truncate rounded bg-slate-900/5 px-1 py-0.5 text-[10px] text-slate-600" title={d.manual.note}>
-                      {d.manual.status === "busy" ? "■ " : d.manual.status === "free" ? "□ " : "◪ "}
+                      {{ busy: "■ ", free: "□ ", pending: "◪ " }[d.manual.status] ?? ""}
                       {d.manual.note || MANUAL_LABEL[d.manual.status]}
                     </span>
                   )}
+                  {d.terms.map((t) => (
+                    <span key={`t${t.id}`} className="mt-0.5 block truncate rounded bg-m365-600 px-1 py-0.5 text-[10px] font-medium text-white" title={t.courseTitle}>
+                      {t.isPartner ? "◆ " : ""}{t.courseTitle}
+                    </span>
+                  ))}
                   {d.bookings.map((b) => (
                     <span
                       key={b.id}
@@ -118,6 +128,7 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
           <div className="flex flex-wrap gap-4 px-5 py-3 text-xs text-slate-500">
             <span><span className="mr-1 inline-block h-3 w-3 rounded bg-excel-600 align-middle" /> potvrzená rezervace</span>
             <span><span className="mr-1 inline-block h-3 w-3 rounded bg-amber-200 align-middle" /> nepotvrzená (zablokovaná)</span>
+            <span><span className="mr-1 inline-block h-3 w-3 rounded bg-m365-600 align-middle" /> termín kurzu (◆ partnerský)</span>
             <span><span className="mr-1 inline-block h-3 w-3 rounded bg-rose-100 ring-1 ring-rose-200 align-middle" /> obsazeno</span>
             <span>■ ručně obsazeno · □ ručně volno · ◪ ručně zablokováno</span>
           </div>
@@ -126,9 +137,24 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
         <div className="space-y-6">
           {selected ? (
             <Panel title={`${weekday(selected.date)} ${dateLong(selected.date)}`}>
-              <p className="mb-4 text-sm">
+              <p className="text-sm">
                 Stav na webu: <b>{STATE_TEXT[selected.state]}</b>
               </p>
+              <p className="mb-4 text-sm">
+                Město na webu: <b>{selected.city || "—"}</b>
+              </p>
+              {selected.terms.length > 0 && (
+                <ul className="mb-3 space-y-2">
+                  {selected.terms.map((t) => (
+                    <li key={t.id} className="rounded-xl bg-m365-50 p-3 text-sm ring-1 ring-m365-100">
+                      <Link href={`/admin/terminy/${t.id}`} className="font-semibold text-ink-950 hover:text-m365-700">
+                        {t.isPartner ? "Partnerský termín" : "Veřejný termín"}: {t.courseTitle}
+                      </Link>
+                      <p className="text-slate-500">{t.city}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {selected.bookings.length > 0 && (
                 <ul className="mb-5 space-y-2">
                   {selected.bookings.map((b) => (
@@ -140,7 +166,7 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                         <StatusBadge map={BOOKING_STATUSES} value={b.status} />
                       </div>
                       <p className="mt-1 text-slate-600">{b.courseTitle}</p>
-                      <p className="text-slate-500">{b.location}{b.fee ? ` · ${price(b.fee)}` : ""}</p>
+                      <p className="text-slate-500">{[b.city, b.location].filter(Boolean).join(", ")}{b.fee ? ` · ${price(b.fee)}` : ""}</p>
                       {b.status === "pending" && (
                         <form action={setBookingStatus} className="mt-2 flex gap-2">
                           <input type="hidden" name="id" value={b.id} />
@@ -170,6 +196,8 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                     </label>
                   ))}
                 </div>
+                <input name="city" defaultValue={selected.manual?.city ?? ""} placeholder="Město (veřejné), např. Ostrava" className="input" />
+                <p className="-mt-1 text-xs text-slate-500">Město z rezervace má přednost. Ruční město se hodí např. pro školení u partnera nebo „Automaticky + Ostrava“ (jen informace, den zůstane volný).</p>
                 <input name="note" defaultValue={selected.manual?.note ?? ""} placeholder="Poznámka (jen pro vás), např. dovolená" className="input" />
                 <SaveButton className="btn-primary btn-sm w-full">Uložit den</SaveButton>
               </form>
@@ -192,9 +220,10 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                 <option value="busy">Obsazeno (např. dovolená)</option>
                 <option value="free">Volno (i víkendy)</option>
                 <option value="pending">Zablokováno</option>
-                <option value="auto">Zrušit ruční označení</option>
+                <option value="auto">Automaticky (jen město/poznámka, nebo zrušit označení)</option>
               </select>
-              <input name="note" placeholder="Poznámka" className="input" />
+              <input name="city" placeholder="Město (veřejné)" className="input" />
+              <input name="note" placeholder="Poznámka (jen pro vás)" className="input" />
               <Check name="skipWeekends" label="Vynechat víkendy" />
               <SaveButton className="btn-ghost btn-sm w-full">Použít na rozsah</SaveButton>
             </form>
@@ -220,7 +249,7 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                 <Link href={`/admin/rezervace/${b.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-slate-50/50">
                   <div className="min-w-0">
                     <p className="font-semibold text-ink-950">{dateRange(b.dateFrom, b.dateTo)} · {b.company || b.contactName}</p>
-                    <p className="text-sm text-slate-500">{b.courseTitle} · {b.location}{b.isOnline ? " (online)" : ""}</p>
+                    <p className="text-sm text-slate-500">{b.courseTitle} · {[b.city, b.location].filter(Boolean).join(", ")}{b.isOnline ? " (online)" : ""}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-slate-700">{b.fee ? price(b.fee) : ""}</span>

@@ -19,12 +19,12 @@ Osobní web lektora **Jaroslava Nedomy** (Excel · Microsoft 365 · Copilot) s v
 | `/reference` | Reference firem (zeď log/názvů + vyjádření) a hodnocení jednotlivých účastníků |
 | `/o-lektorovi` | Profil lektora |
 | `/poptavka` | Poptávkový formulář (firemní / individuální / konzultace) |
-| `/kalendar` | **Rezervační kalendář lektora** – volné / zablokované / obsazené dny, výběr kurzu a místa konání, vícedenní rezervace |
+| `/kalendar` | **Rezervační kalendář lektora** – volné / zablokované / obsazené dny s **městem, kde lektor ten den školí** (bez jména klienta), u vybraného dne upozornění, kde je lektor den předem/potom kvůli cestování; výběr kurzu, města a místa konání, vícedenní rezervace, nejdříve na zítřek, víkendy nedostupné |
 
 **Administrace (`/admin`)**
 
 - **Přehled** – nepotvrzené rezervace (potvrzení jedním klikem), nové poptávky a objednávky, honoráře v měsíci, nejbližší školení.
-- **Kalendář lektora** – měsíční mřížka; každý den lze ručně označit jako *volno / obsazeno / zablokováno* s poznámkou, hromadně označit rozsah (dovolená). Rezervace z webu přicházejí jako *nepotvrzené* a den je na webu zablokovaný, dokud je nepotvrdíte nebo nezamítnete. U rezervace evidujete klienta, místo, kurz, **domluvený honorář**, poznámky, potvrzení; upozornění na kolize.
+- **Kalendář lektora** – měsíční mřížka; každý den lze ručně označit jako *volno / obsazeno / zablokováno* s poznámkou, hromadně označit rozsah (dovolená). U dne i rezervace se eviduje **město** (z rezervace klienta se propíše a můžete ho upravit; ručně ho lze zadat i bez změny dostupnosti). Vypsané veřejné a partnerské termíny kurzů den automaticky obsadí. Rezervace z webu přicházejí jako *nepotvrzené* a den je na webu zablokovaný, dokud je nepotvrdíte nebo nezamítnete. U rezervace evidujete klienta, místo, kurz, **domluvený honorář**, poznámky, potvrzení; upozornění na kolize.
 - **Poptávky** – stavy (nová → řeším → nabídka odeslána → realizováno / nerealizováno), interní poznámky, převod poptávky na rezervaci v kalendáři.
 - **Objednávky** – přihlášky na termíny i nákupy videokurzů, stavy (nová → potvrzená → vyfakturovaná → zaplacená), poznámky.
 - **Kurzy a oblasti** – přidání/úprava kurzu, zařazení do oblasti, úroveň, cena, osnova, zveřejnění, „doporučený“, „novinka“.
@@ -65,6 +65,10 @@ Možnosti:
 
 1. **Vercel + Turso** – `DATABASE_URL=libsql://…turso.io`, `DATABASE_AUTH_TOKEN=…`, ostatní proměnné z `.env.example`. Schéma nahrajete `npm run db:push`, data `npm run db:seed`.
 2. **VPS / vlastní server** – `npm run build && npm start`, databáze jako soubor v `data/` (zálohujte ho).
+
+> **WEDOS:** sdílený webhosting WEDOS (LowCost / NoLimit) podporuje jen PHP + MySQL, Node.js na něm nepoběží. Pro tuto aplikaci je potřeba WEDOS VPS, nebo jiný hosting s Node.js (doména a e-maily mohou zůstat u WEDOSu).
+
+Po aktualizaci aplikace vždy spusťte `npm run db:push` – doplní nové sloupce do databáze (data zůstanou).
 
 Povinné proměnné v produkci: `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `AUTH_SECRET` (≥ 32 znaků), `DATABASE_URL`.
 

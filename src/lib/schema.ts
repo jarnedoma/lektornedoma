@@ -195,10 +195,13 @@ export const clients = sqliteTable("clients", {
 /**
  * Ruční označení dne v kalendáři lektora.
  * free = volno (i o víkendu), busy = obsazeno / nedostupné, pending = zablokováno, čeká na potvrzení.
+ * Lze zadat i jen město (status "auto") – např. „jsem v Ostravě“, aniž by se měnila dostupnost.
  */
 export const calendarDays = sqliteTable("calendar_days", {
   date: text("date").primaryKey(), // YYYY-MM-DD
   status: text("status").notNull(),
+  /** Město, kde lektor ten den je – zobrazuje se veřejně v kalendáři */
+  city: text("city").notNull().default(""),
   note: text("note").notNull().default(""),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
@@ -220,6 +223,8 @@ export const bookings = sqliteTable(
     company: text("company").notNull().default(""),
     email: text("email").notNull().default(""),
     phone: text("phone").notNull().default(""),
+    /** Město konání – zobrazuje se veřejně v kalendáři (bez jména klienta) */
+    city: text("city").notNull().default(""),
     /** Kde školení proběhne – adresa klienta / online */
     location: text("location").notNull().default(""),
     isOnline: integer("is_online", { mode: "boolean" }).notNull().default(false),

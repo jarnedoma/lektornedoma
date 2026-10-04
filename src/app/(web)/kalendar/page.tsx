@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
 import { getCategoriesWithCourses } from "@/lib/queries";
-import { getCalendarRange, monthBounds, monthGrid } from "@/lib/calendar";
+import { firstBookableDay, getCalendarRange, monthBounds, monthGrid } from "@/lib/calendar";
 import { BookingCalendar } from "@/components/forms/booking-calendar";
 import { PageHero } from "@/components/ui";
-import { todayISO } from "@/lib/format";
+import { addDays, todayISO } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Volné termíny lektora",
@@ -32,9 +32,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   }
   const curOffset = (y - ty) * 12 + (m - tm);
   const grid = monthGrid(y, m);
-  const info = await getCalendarRange(grid[0], grid[grid.length - 1], s.bookingWeekends === "1");
+  // Načteme i pár dní kolem mřížky, aby šlo ukázat, kde je lektor den před/po vybraném dni
+  const from = addDays(grid[0], -4);
+  const to = addDays(grid[grid.length - 1], 4);
+  const info = await getCalendarRange(from, to, s.bookingWeekends === "1", firstBookableDay());
   const { first, last } = monthBounds(y, m);
-  const days = info.map((d) => ({ date: d.date, state: d.state, inMonth: d.date >= first && d.date <= last }));
+  const days = info
+    .filter((d) => d.date >= grid[0] && d.date <= grid[grid.length - 1])
+    .map((d) => ({ date: d.date, state: d.state, inMonth: d.date >= first && d.date <= last, city: d.state === "past" ? "" : d.city }));
+  // Veřejně jen město – žádné jméno klienta ani poznámky
+  const cities = Object.fromEntries(info.filter((d) => d.city && d.city !== "online").map((d) => [d.date, d.city]));
   const shift = (n: number) => {
     const d = new Date(Date.UTC(y, m - 1 + n, 1));
     return `/kalendar?mesic=${d.toISOString().slice(0, 7)}`;
@@ -50,6 +57,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           year={y}
           month={m}
           days={days}
+          cities={cities}
+          travelNote={s.bookingTravelNote}
           courses={options}
           prevHref={curOffset > 0 ? shift(-1) : null}
           nextHref={curOffset < MAX_MONTHS_AHEAD ? shift(1) : null}

@@ -45,6 +45,7 @@ const GROUPS: { title: string; fields: Field[] }[] = [
     title: "Kalendář a videokurzy",
     fields: [
       { key: "bookingIntro", label: "Úvodní text kalendáře", rows: 3, full: true },
+      { key: "bookingTravelNote", label: "Upozornění na cestování / cestovné (pod kalendářem)", rows: 3, full: true },
       { key: "videoPortalName", label: "Název vzdělávacího portálu" },
       { key: "videoPortalUrl", label: "Adresa portálu (URL)" },
     ],

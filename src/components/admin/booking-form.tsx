@@ -28,7 +28,8 @@ export function BookingForm({ booking, courses, defaults }: { booking?: Booking;
             <F label="Název / téma školení" className="sm:col-span-2" hint="Pokud necháte prázdné, použije se název vybraného kurzu.">
               <input name="courseTitle" defaultValue={b?.courseTitle} className="input" />
             </F>
-            <F label="Místo konání" className="sm:col-span-2"><input name="location" defaultValue={b?.location} className="input" placeholder="Firma, adresa" /></F>
+            <F label="Město" hint="Zobrazí se veřejně v kalendáři (bez jména klienta)."><input name="city" defaultValue={b?.city} className="input" placeholder="např. Ostrava" /></F>
+            <F label="Adresa / místo konání"><input name="location" defaultValue={b?.location} className="input" placeholder="Firma, ulice" /></F>
             <Check name="isOnline" label="Online" defaultChecked={b?.isOnline} />
             <F label="Počet účastníků"><input name="participants" type="number" min={1} defaultValue={b?.participants ?? ""} className="input" /></F>
           </div>

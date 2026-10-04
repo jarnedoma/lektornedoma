@@ -64,7 +64,7 @@ export default async function Dashboard() {
                 <li key={b.id} className="flex items-center justify-between gap-3 py-3">
                   <Link href={`/admin/rezervace/${b.id}`} className="min-w-0">
                     <p className="font-semibold text-ink-950">{dateRange(b.dateFrom, b.dateTo)}</p>
-                    <p className="truncate text-sm text-slate-500">{b.company || b.contactName} · {b.courseTitle} · {b.location}</p>
+                    <p className="truncate text-sm text-slate-500">{b.company || b.contactName} · {b.courseTitle} · {b.city || b.location}</p>
                   </Link>
                   <form action={setBookingStatus} className="shrink-0">
                     <input type="hidden" name="id" value={b.id} />

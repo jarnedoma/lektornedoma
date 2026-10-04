@@ -452,7 +452,8 @@ await db.insert(schema.bookings).values([
     courseTitle: "Excel pro pokročilé",
     contactName: "Ukázkový klient",
     company: "Ukázková firma s.r.o.",
-    location: "Praha – sídlo klienta",
+    city: "Praha",
+    location: "sídlo klienta",
     participants: 8,
     fee: 14000,
     feeNote: "bez DPH, včetně materiálů",
@@ -469,12 +470,16 @@ await db.insert(schema.bookings).values([
     contactName: "Ukázková poptávka z kalendáře",
     company: "Firma a.s.",
     email: "klient@example.com",
-    location: "Brno",
+    city: "Ostrava",
+    location: "kancelář klienta",
     participants: 12,
     message: "Ukázková rezervace z webu, čeká na potvrzení.",
   },
 ]);
 
-await db.insert(schema.calendarDays).values([{ date: iso(11), status: "busy", note: "Dovolená (ukázka)" }]);
+await db.insert(schema.calendarDays).values([
+  { date: iso(11), status: "busy", note: "Dovolená (ukázka)" },
+  { date: iso(10), status: "auto", city: "Olomouc", note: "Ukázka: jen informace o městě, den zůstává volný" },
+]);
 
 console.log(`Hotovo: ${cats.length} kategorií, ${insertedCourses.length} kurzů, ukázkové termíny, videokurzy, reference a rezervace.`);

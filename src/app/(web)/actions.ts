@@ -4,7 +4,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getTermForOrder } from "@/lib/queries";
-import { rangeIsFree } from "@/lib/calendar";
+import { firstBookableDay, rangeIsFree } from "@/lib/calendar";
 import { getSettings } from "@/lib/settings";
 import { addDays, dateRange, price, todayISO } from "@/lib/format";
 import { formatFields, notifyAdmin } from "@/lib/mail";
@@ -213,7 +213,8 @@ const bookingSchema = z.object({
   company: str(200),
   email,
   phone: str(50),
-  location: z.string().trim().min(2, { error: "Uveďte místo konání (město / adresa nebo online)." }).max(300),
+  city: str(100),
+  location: str(300),
   isOnline: z.preprocess((v) => v === "on", z.boolean()),
   participants: optInt,
   message: z.string().trim().max(3000).default(""),
@@ -226,7 +227,11 @@ export async function submitBooking(_prev: FormState, fd: FormData): Promise<For
   if (!parsed.success) return invalid(parsed.error);
   const { consent: _c, days, ...data } = parsed.data;
 
-  if (data.dateFrom < todayISO()) return { ok: false, message: "Vyberte prosím budoucí den." };
+  if (!data.isOnline && data.city.length < 2) {
+    return { ok: false, message: "Uveďte město, kde školení proběhne.", errors: { city: "Uveďte město konání." } };
+  }
+  if (data.isOnline && !data.city) data.city = "online";
+  if (data.dateFrom < firstBookableDay()) return { ok: false, message: "Termín je možné rezervovat nejpozději den předem. Vyberte prosím pozdější den." };
   const dateTo = addDays(data.dateFrom, days - 1);
   const settings = await getSettings();
   const weekendsOpen = settings.bookingWeekends === "1";
@@ -256,6 +261,7 @@ export async function submitBooking(_prev: FormState, fd: FormData): Promise<For
     formatFields({
       Termín: dateRange(data.dateFrom, dateTo),
       Kurz: courseTitle,
+      Město: data.city,
       Místo: data.location + (data.isOnline ? " (online)" : ""),
       Kontakt: data.contactName,
       Firma: data.company,

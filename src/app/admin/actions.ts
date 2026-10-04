@@ -253,6 +253,7 @@ export async function inquiryToBooking(fd: FormData) {
       courseId: inq.courseId,
       courseTitle: courseTitle || "Školení",
       contactName: inq.name,
+      city: inq.format === "online" ? "online" : inq.location,
       company: inq.company,
       email: inq.email,
       phone: inq.phone,
@@ -304,6 +305,7 @@ export async function saveBooking(fd: FormData) {
     company: s(fd, "company"),
     email: s(fd, "email"),
     phone: s(fd, "phone"),
+    city: s(fd, "city") || (b(fd, "isOnline") ? "online" : ""),
     location: s(fd, "location"),
     isOnline: b(fd, "isOnline"),
     participants: n(fd, "participants"),
@@ -345,7 +347,11 @@ export async function deleteBooking(fd: FormData) {
   done("/admin/kalendar");
 }
 
-/** Ruční označení jednoho dne nebo rozsahu dnů. status "auto" = smazat ruční označení. */
+/**
+ * Ruční označení jednoho dne nebo rozsahu dnů.
+ * status "auto" = dostupnost se řídí automaticky; pokud je zadané město nebo poznámka, záznam zůstane
+ * jen jako informace (např. „jsem v Ostravě“), jinak se ruční označení smaže.
+ */
 export async function setDayStatus(fd: FormData) {
   await requireAdmin();
   const from = date(fd, "from");
@@ -355,17 +361,18 @@ export async function setDayStatus(fd: FormData) {
   if (to > addDays(from, 366)) to = addDays(from, 366);
   const status = oneOf(s(fd, "status"), ["auto", "free", "busy", "pending"] as const, "auto");
   const note = s(fd, "note");
+  const city = s(fd, "city");
   const skipWeekends = b(fd, "skipWeekends");
 
-  if (status === "auto") {
+  if (status === "auto" && !note && !city) {
     await db.delete(schema.calendarDays).where(and(gte(schema.calendarDays.date, from), lte(schema.calendarDays.date, to)));
   } else {
     for (let d = from; d <= to; d = addDays(d, 1)) {
       if (skipWeekends && isWeekend(d)) continue;
       await db
         .insert(schema.calendarDays)
-        .values({ date: d, status, note, updatedAt: new Date() })
-        .onConflictDoUpdate({ target: schema.calendarDays.date, set: { status, note, updatedAt: new Date() } });
+        .values({ date: d, status, city, note, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: schema.calendarDays.date, set: { status, city, note, updatedAt: new Date() } });
     }
   }
   done("/admin/kalendar", s(fd, "back") || `/admin/kalendar?mesic=${from.slice(0, 7)}&den=${from}`);

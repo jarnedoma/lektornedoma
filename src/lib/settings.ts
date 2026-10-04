@@ -26,6 +26,8 @@ export const SETTING_DEFAULTS = {
   videoPortalName: "vzdělávací portál",
   bookingIntro:
     "Vyberte volný den, kurz a místo konání. Termín pro vás předběžně zablokuji a do 24 hodin se ozvu s potvrzením.",
+  bookingTravelNote:
+    "U každého obsazeného dne vidíte město, kde zrovna školím. Při výběru termínu prosím zohledněte, kde jsem den předem – kvůli cestování. Při delším přejezdu se k honoráři připočítává cestovné.",
   bookingWeekends: "0",
 } satisfies Record<string, string>;
 
