@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { AdminHeader, StatusBadge } from "@/components/admin/ui";
 import { BookingForm } from "@/components/admin/booking-form";
+import { BookingGroup } from "@/components/admin/booking-group";
 import { ConfirmButton } from "@/components/admin/client-bits";
 import { BOOKING_STATUSES } from "@/lib/constants";
 import { dateRange } from "@/lib/format";
@@ -47,6 +48,7 @@ export default async function EditBooking({ params }: { params: Promise<{ id: st
           .
         </div>
       )}
+      <BookingGroup groupId={b.groupId} currentId={b.id} back={`/admin/rezervace/${b.id}`} />
       <BookingForm booking={b} courses={courses} />
     </>
   );

@@ -175,6 +175,19 @@ export default async function AdminCalendar({ searchParams }: { searchParams: Pr
                           <button name="status" value="cancelled" className="btn-ghost btn-sm">Zamítnout</button>
                         </form>
                       )}
+                      {b.groupId && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-2 text-xs">
+                          <Link href={`/admin/rezervace/${b.id}`} className="font-semibold text-m365-700 hover:underline">Součást rezervace více termínů →</Link>
+                          {b.status === "pending" && (
+                            <form action={setBookingStatus}>
+                              <input type="hidden" name="id" value={b.id} />
+                              <input type="hidden" name="whole" value="1" />
+                              <input type="hidden" name="back" value={back} />
+                              <button name="status" value="confirmed" className="font-semibold text-excel-700 hover:underline">Potvrdit všechny dny</button>
+                            </form>
+                          )}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

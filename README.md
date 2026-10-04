@@ -19,12 +19,12 @@ Osobní web lektora **Jaroslava Nedomy** (Excel · Microsoft 365 · Copilot) s v
 | `/reference` | Reference firem (zeď log/názvů + vyjádření) a hodnocení jednotlivých účastníků |
 | `/o-lektorovi` | Profil lektora |
 | `/poptavka` | Poptávkový formulář (firemní / individuální / konzultace) |
-| `/kalendar` | **Rezervační kalendář lektora** – volné / zablokované / obsazené dny s **městem, kde lektor ten den školí** (bez jména klienta), u vybraného dne upozornění, kde je lektor den předem/potom kvůli cestování; výběr kurzu, města a místa konání, vícedenní rezervace, nejdříve na zítřek, víkendy nedostupné |
+| `/kalendar` | **Rezervační kalendář lektora** – volné / zablokované / obsazené dny s **městem, kde lektor ten den školí** (bez jména klienta), u vybraného dne upozornění, kde je lektor den předem/potom kvůli cestování; **výběr libovolného počtu dní najednou** (i napříč měsíci, max. 20) s kurzem společným pro všechny dny nebo zvlášť pro každý den + pole pro upřesnění; město a místo konání; nejdříve na zítřek, víkendy nedostupné |
 
 **Administrace (`/admin`)**
 
 - **Přehled** – nepotvrzené rezervace (potvrzení jedním klikem), nové poptávky a objednávky, honoráře v měsíci, nejbližší školení.
-- **Kalendář lektora** – měsíční mřížka; každý den lze ručně označit jako *volno / obsazeno / zablokováno* s poznámkou, hromadně označit rozsah (dovolená). U dne i rezervace se eviduje **město** (z rezervace klienta se propíše a můžete ho upravit; ručně ho lze zadat i bez změny dostupnosti). Vypsané veřejné a partnerské termíny kurzů den automaticky obsadí. Rezervace z webu přicházejí jako *nepotvrzené* a den je na webu zablokovaný, dokud je nepotvrdíte nebo nezamítnete. U rezervace evidujete klienta, místo, kurz, **domluvený honorář**, poznámky, potvrzení; upozornění na kolize.
+- **Kalendář lektora** – měsíční mřížka; každý den lze ručně označit jako *volno / obsazeno / zablokováno* s poznámkou, hromadně označit rozsah (dovolená). U dne i rezervace se eviduje **město** (z rezervace klienta se propíše a můžete ho upravit; ručně ho lze zadat i bez změny dostupnosti). Vypsané veřejné a partnerské termíny kurzů den automaticky obsadí. Dny vybrané klientem naráz tvoří jednu rezervaci (souvislé dny se stejným kurzem se spojí do bloku) a lze je **potvrdit nebo zamítnout najednou**. Rezervace z webu přicházejí jako *nepotvrzené* a den je na webu zablokovaný, dokud je nepotvrdíte nebo nezamítnete. U rezervace evidujete klienta, místo, kurz, **domluvený honorář**, poznámky, potvrzení; upozornění na kolize.
 - **Poptávky** – stavy (nová → řeším → nabídka odeslána → realizováno / nerealizováno), interní poznámky, převod poptávky na rezervaci v kalendáři.
 - **Objednávky** – přihlášky na termíny i nákupy videokurzů, stavy (nová → potvrzená → vyfakturovaná → zaplacená), poznámky.
 - **Kurzy a oblasti** – přidání/úprava kurzu, zařazení do oblasti, úroveň, cena, osnova, zveřejnění, „doporučený“, „novinka“.

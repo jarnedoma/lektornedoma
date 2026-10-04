@@ -1,10 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db, schema } from "@/lib/db";
 import { getTermForOrder } from "@/lib/queries";
-import { firstBookableDay, rangeIsFree } from "@/lib/calendar";
+import { firstBookableDay, getCalendarRange } from "@/lib/calendar";
 import { getSettings } from "@/lib/settings";
 import { addDays, dateRange, price, todayISO } from "@/lib/format";
 import { formatFields, notifyAdmin } from "@/lib/mail";
@@ -202,13 +203,23 @@ export async function submitVideoOrder(_prev: FormState, fd: FormData): Promise<
 
 // ————————————————————— Rezervace z kalendáře —————————————————————
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Vyberte den v kalendáři." });
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const MAX_BOOKING_DAYS = 20; // stejný limit jako v BookingCalendar
+
+const selectionSchema = z
+  .array(z.object({ date: isoDate, courseId: z.coerce.number().int().positive().nullable() }))
+  .min(1, { error: "Vyberte alespoň jeden den v kalendáři." })
+  .max(MAX_BOOKING_DAYS, { error: `Najednou lze vybrat nejvýše ${MAX_BOOKING_DAYS} dní.` });
 
 const bookingSchema = z.object({
-  dateFrom: isoDate,
-  days: z.coerce.number().int().min(1).max(10).default(1),
-  courseId: optInt,
-  courseTitle: str(300),
+  selection: z.preprocess((v) => {
+    try {
+      return JSON.parse(String(v ?? "[]"));
+    } catch {
+      return [];
+    }
+  }, selectionSchema),
+  courseTitle: str(1000),
   contactName: name,
   company: str(200),
   email,
@@ -222,57 +233,96 @@ const bookingSchema = z.object({
 });
 
 export async function submitBooking(_prev: FormState, fd: FormData): Promise<FormState> {
-  if (isSpam(fd)) return { ok: true, message: "Děkuji, termín je zablokovaný." };
+  if (isSpam(fd)) return { ok: true, message: "Děkuji, termíny jsou zablokované." };
   const parsed = bookingSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return invalid(parsed.error);
-  const { consent: _c, days, ...data } = parsed.data;
+  const { consent: _c, selection, courseTitle: note, ...data } = parsed.data;
 
   if (!data.isOnline && data.city.length < 2) {
     return { ok: false, message: "Uveďte město, kde školení proběhne.", errors: { city: "Uveďte město konání." } };
   }
   if (data.isOnline && !data.city) data.city = "online";
-  if (data.dateFrom < firstBookableDay()) return { ok: false, message: "Termín je možné rezervovat nejpozději den předem. Vyberte prosím pozdější den." };
-  const dateTo = addDays(data.dateFrom, days - 1);
+
+  // Deduplikace a seřazení dnů
+  const byDate = new Map(selection.map((s) => [s.date, s.courseId]));
+  const dates = [...byDate.keys()].sort();
+  if (dates[0] < firstBookableDay()) {
+    return { ok: false, message: "Termíny je možné rezervovat nejpozději den předem. Odeberte prosím dnešní nebo minulé dny." };
+  }
+
   const settings = await getSettings();
-  const weekendsOpen = settings.bookingWeekends === "1";
-  if (!(await rangeIsFree(data.dateFrom, dateTo, weekendsOpen))) {
-    return { ok: false, message: "Vybraný termín už mezitím někdo zablokoval nebo není celý volný. Zvolte prosím jiný den." };
+  const calendar = await getCalendarRange(dates[0], dates[dates.length - 1], settings.bookingWeekends === "1", firstBookableDay());
+  const taken = dates.filter((d) => calendar.find((c) => c.date === d)?.state !== "free");
+  if (taken.length) {
+    return {
+      ok: false,
+      message: `Tyto dny už mezitím nejsou volné: ${taken.map((d) => dateRange(d)).join(", ")}. Odeberte je prosím z výběru (obnovte stránku).`,
+    };
   }
 
-  let courseTitle = data.courseTitle;
-  if (data.courseId) {
-    const [c] = await db.select({ title: schema.courses.title }).from(schema.courses).where(eq(schema.courses.id, data.courseId));
-    if (c) courseTitle = c.title;
-    else data.courseId = undefined;
+  // Názvy kurzů z nabídky
+  const ids = [...new Set([...byDate.values()].filter((v): v is number => v != null))];
+  const titles = new Map(
+    ids.length ? (await db.select({ id: schema.courses.id, title: schema.courses.title }).from(schema.courses).where(inArray(schema.courses.id, ids))).map((c) => [c.id, c.title]) : [],
+  );
+  const dayCourse = (d: string) => {
+    const id = byDate.get(d);
+    return id != null && titles.has(id) ? id : null;
+  };
+  if (!note && dates.some((d) => dayCourse(d) == null)) {
+    return {
+      ok: false,
+      message: "U některých dnů chybí kurz. Vyberte ho, nebo téma popište do pole Upřesnění.",
+      errors: { courseId: "Vyberte kurz, nebo vyplňte upřesnění / jiné téma.", courseTitle: "Popište téma pro dny bez vybraného kurzu." },
+    };
   }
-  if (!courseTitle) return { ok: false, message: "Vyberte kurz nebo napište téma.", errors: { courseId: "Vyberte kurz nebo napište téma." } };
 
-  await db.insert(schema.bookings).values({
-    ...data,
-    courseId: data.courseId ?? null,
-    courseTitle,
-    participants: data.participants ?? null,
-    dateTo,
-    status: "pending",
-    source: "web",
-  });
+  // Souvislé dny se stejným kurzem uložíme jako jednu rezervaci, vše pod společným groupId
+  const blocks: { from: string; to: string; courseId: number | null }[] = [];
+  for (const d of dates) {
+    const cid = dayCourse(d);
+    const last = blocks.at(-1);
+    if (last && addDays(last.to, 1) === d && last.courseId === cid) last.to = d;
+    else blocks.push({ from: d, to: d, courseId: cid });
+  }
+  const groupId = blocks.length > 1 ? randomUUID() : "";
+  const message = [note && `Upřesnění: ${note}`, data.message].filter(Boolean).join("\n\n");
+  await db.insert(schema.bookings).values(
+    blocks.map((b) => ({
+      ...data,
+      dateFrom: b.from,
+      dateTo: b.to,
+      courseId: b.courseId,
+      courseTitle: b.courseId != null ? titles.get(b.courseId)! : note.slice(0, 200) || "Školení na míru",
+      participants: data.participants ?? null,
+      message,
+      status: "pending",
+      source: "web",
+      groupId,
+    })),
+  );
+
+  const summary = blocks.map((b) => `${dateRange(b.from, b.to)} – ${b.courseId != null ? titles.get(b.courseId) : "jiné téma"}`).join("\n");
   await notifyAdmin(
-    `Rezervace termínu ${dateRange(data.dateFrom, dateTo)} – ${data.company || data.contactName}`,
-    formatFields({
-      Termín: dateRange(data.dateFrom, dateTo),
-      Kurz: courseTitle,
-      Město: data.city,
-      Místo: data.location + (data.isOnline ? " (online)" : ""),
-      Kontakt: data.contactName,
-      Firma: data.company,
-      "E-mail": data.email,
-      Telefon: data.phone,
-      Účastníků: data.participants,
-      Zpráva: data.message,
-    }),
+    `Rezervace ${dates.length > 1 ? `${dates.length} dní` : dateRange(dates[0])} – ${data.company || data.contactName}`,
+    `${summary}\n\n` +
+      formatFields({
+        Upřesnění: note,
+        Město: data.city,
+        Místo: data.location + (data.isOnline ? " (online)" : ""),
+        Kontakt: data.contactName,
+        Firma: data.company,
+        "E-mail": data.email,
+        Telefon: data.phone,
+        Účastníků: data.participants,
+        Zpráva: data.message,
+      }),
   );
   return {
     ok: true,
-    message: `Termín ${dateRange(data.dateFrom, dateTo)} je pro vás předběžně zablokovaný. Ozvu se s potvrzením a domluvíme detaily.`,
+    message:
+      dates.length === 1
+        ? `Termín ${dateRange(dates[0])} je pro vás předběžně zablokovaný. Ozvu se s potvrzením a domluvíme detaily.`
+        : `${dates.length} dní (${blocks.map((b) => dateRange(b.from, b.to)).join(", ")}) je pro vás předběžně zablokováno. Ozvu se s potvrzením a domluvíme detaily.`,
   };
 }

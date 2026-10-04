@@ -347,11 +347,23 @@ const insertedCourses = await db.insert(schema.courses).values(courseRows).retur
 const cid = Object.fromEntries(insertedCourses.map((c) => [c.slug, c.id]));
 
 // Ukázkové termíny v budoucnu (relativně k dnešku)
+// Ukázková data posouváme na nejbližší pracovní den – lektor o víkendech neškolí
 const iso = (offsetDays: number) => {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + offsetDays);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
 };
+
+const nextWorkday = (date: string) => {
+  const d = new Date(date + "T00:00:00Z");
+  do d.setUTCDate(d.getUTCDate() + 1);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
+  return d.toISOString().slice(0, 10);
+};
+// Dvoudenní kurz (po–čt), aby druhý den nepadl přes víkend
+let vbaStart = iso(56);
+while (new Date(vbaStart + "T00:00:00Z").getUTCDay() === 5) vbaStart = nextWorkday(vbaStart);
 
 await db.insert(schema.terms).values([
   { courseId: cid["excel-kontingencni-tabulky"], startDate: iso(14), location: "Praha – Karlín", capacity: 10 },
@@ -368,7 +380,7 @@ await db.insert(schema.terms).values([
   },
   { courseId: cid["copilot-v-excelu"], startDate: iso(42), location: "Praha – Karlín", capacity: 10 },
   { courseId: cid["microsoft-365-efektivni-spoluprace"], startDate: iso(49), location: "Online (Microsoft Teams)", isOnline: true },
-  { courseId: cid["excel-makra-a-vba"], startDate: iso(56), endDate: iso(57), location: "Praha", capacity: 8 },
+  { courseId: cid["excel-makra-a-vba"], startDate: vbaStart, endDate: nextWorkday(vbaStart), location: "Praha", capacity: 8 },
 ]);
 
 await db.insert(schema.videoCourses).values([

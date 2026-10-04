@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { AdminHeader, Panel, StatusBadge } from "@/components/admin/ui";
 import { INQUIRY_STATUSES, ORDER_STATUSES, TERM_STATUSES } from "@/lib/constants";
-import { addDays, dateRange, dateTime, price, todayISO } from "@/lib/format";
+import { addDays, dateRange, dateTime, plural, price, todayISO } from "@/lib/format";
 import { monthBounds } from "@/lib/calendar";
 import { setBookingStatus } from "../actions";
 import { SaveButton } from "@/components/admin/client-bits";
@@ -32,6 +32,13 @@ export default async function Dashboard() {
       .from(schema.bookings)
       .where(and(inArray(schema.bookings.status, ["confirmed", "done"]), lte(schema.bookings.dateFrom, last), gte(schema.bookings.dateTo, first))),
   ]);
+  // Dny z jedné rezervace (stejné groupId) zobrazíme jako jednu položku
+  const pendingGroups: (typeof pending)[] = [];
+  for (const p of pending) {
+    const g = p.groupId ? pendingGroups.find((x) => x[0].groupId === p.groupId) : undefined;
+    if (g) g.push(p);
+    else pendingGroups.push([p]);
+  }
   const monthFees = monthBookings.reduce((sum, b) => sum + (b.fee ?? 0), 0);
   const newInq = inquiries.filter((i) => i.status === "new").length;
   const newOrd = orders.filter((o) => o.status === "new").length;
@@ -42,7 +49,7 @@ export default async function Dashboard() {
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          ["Nepotvrzené rezervace", pending.length, "/admin/kalendar", "text-amber-600"],
+          ["Nepotvrzené rezervace", pendingGroups.length, "/admin/kalendar", "text-amber-600"],
           ["Nové poptávky", newInq, "/admin/poptavky?stav=new", "text-m365-600"],
           ["Nové objednávky", newOrd, "/admin/objednavky?stav=new", "text-excel-600"],
           ["Honoráře tento měsíc", price(monthFees), "/admin/kalendar", "text-ink-950"],
@@ -60,20 +67,29 @@ export default async function Dashboard() {
             <p className="text-sm text-slate-500">Žádné nepotvrzené rezervace.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {pending.map((b) => (
-                <li key={b.id} className="flex items-center justify-between gap-3 py-3">
-                  <Link href={`/admin/rezervace/${b.id}`} className="min-w-0">
-                    <p className="font-semibold text-ink-950">{dateRange(b.dateFrom, b.dateTo)}</p>
-                    <p className="truncate text-sm text-slate-500">{b.company || b.contactName} · {b.courseTitle} · {b.city || b.location}</p>
-                  </Link>
-                  <form action={setBookingStatus} className="shrink-0">
-                    <input type="hidden" name="id" value={b.id} />
-                    <input type="hidden" name="status" value="confirmed" />
-                    <input type="hidden" name="back" value="/admin" />
-                    <SaveButton className="btn btn-sm bg-excel-600 text-white hover:bg-excel-700">Potvrdit</SaveButton>
-                  </form>
-                </li>
-              ))}
+              {pendingGroups.map((g) => {
+                const b = g[0];
+                return (
+                  <li key={b.id} className="flex items-center justify-between gap-3 py-3">
+                    <Link href={`/admin/rezervace/${b.id}`} className="min-w-0">
+                      <p className="font-semibold text-ink-950">
+                        {g.map((x) => dateRange(x.dateFrom, x.dateTo)).join(", ")}
+                        {g.length > 1 && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{plural(g.length, "blok", "bloky", "bloků")}</span>}
+                      </p>
+                      <p className="truncate text-sm text-slate-500">
+                        {b.company || b.contactName} · {[...new Set(g.map((x) => x.courseTitle))].join(", ")} · {b.city || b.location}
+                      </p>
+                    </Link>
+                    <form action={setBookingStatus} className="shrink-0">
+                      <input type="hidden" name="id" value={b.id} />
+                      <input type="hidden" name="status" value="confirmed" />
+                      <input type="hidden" name="whole" value="1" />
+                      <input type="hidden" name="back" value="/admin" />
+                      <SaveButton className="btn btn-sm bg-excel-600 text-white hover:bg-excel-700">{g.length > 1 ? "Potvrdit vše" : "Potvrdit"}</SaveButton>
+                    </form>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Panel>

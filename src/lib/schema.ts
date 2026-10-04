@@ -237,6 +237,8 @@ export const bookings = sqliteTable(
     confirmedAt: integer("confirmed_at", { mode: "timestamp_ms" }),
     /** web | admin */
     source: text("source").notNull().default("web"),
+    /** Společné ID dnů z jedné rezervace (klient vybral víc termínů naráz) */
+    groupId: text("group_id").notNull().default(""),
     ...timestamps,
   },
   (t) => [index("bookings_dates_idx").on(t.dateFrom, t.dateTo), index("bookings_status_idx").on(t.status)],

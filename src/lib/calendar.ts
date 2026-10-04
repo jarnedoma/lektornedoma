@@ -135,12 +135,6 @@ export async function getCalendarRange(from: string, to: string, weekendsOpen: b
   return out;
 }
 
-/** Zkontroluje, že jsou všechny dny v rozsahu volné (pro veřejnou rezervaci). */
-export async function rangeIsFree(from: string, to: string, weekendsOpen: boolean): Promise<boolean> {
-  const days = await getCalendarRange(from, to, weekendsOpen, firstBookableDay());
-  return days.every((d) => d.state === "free");
-}
-
 /** Rezervovat z webu lze nejdříve na zítřek. */
 export function firstBookableDay(): string {
   return addDays(todayISO(), 1);

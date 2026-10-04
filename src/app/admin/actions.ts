@@ -329,14 +329,17 @@ export async function setBookingStatus(fd: FormData) {
   const bookingId = id(fd);
   if (!bookingId) return;
   const status = oneOf(s(fd, "status"), BOOKING, "pending");
-  await db
-    .update(schema.bookings)
-    .set({
-      status,
-      confirmedAt: status === "confirmed" || status === "done" ? new Date() : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.bookings.id, bookingId));
+  const set = { status, confirmedAt: status === "confirmed" || status === "done" ? new Date() : null, updatedAt: new Date() };
+  // whole=1: změna pro všechny dosud nepotvrzené dny ze stejné rezervace (klient vybral víc dní naráz)
+  const [row] = await db.select({ groupId: schema.bookings.groupId }).from(schema.bookings).where(eq(schema.bookings.id, bookingId));
+  if (b(fd, "whole") && row?.groupId) {
+    await db
+      .update(schema.bookings)
+      .set(set)
+      .where(and(eq(schema.bookings.groupId, row.groupId), eq(schema.bookings.status, "pending")));
+  } else {
+    await db.update(schema.bookings).set(set).where(eq(schema.bookings.id, bookingId));
+  }
   done("/admin/kalendar", s(fd, "back") || "/admin/kalendar");
 }
 
