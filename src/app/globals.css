@@ -1,0 +1,93 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/manrope";
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink-950: #0b1220;
+  --color-ink-900: #111a2e;
+  --color-ink-800: #1b2640;
+
+  --color-excel-50: #edf8f1;
+  --color-excel-100: #d3eedd;
+  --color-excel-200: #a7dcbb;
+  --color-excel-400: #3fae6b;
+  --color-excel-500: #1f9450;
+  --color-excel-600: #107c41;
+  --color-excel-700: #0b6534;
+  --color-excel-800: #0a4f2a;
+
+  --color-m365-50: #eef5fc;
+  --color-m365-100: #d6e7f8;
+  --color-m365-200: #aacdf0;
+  --color-m365-400: #3d8ad8;
+  --color-m365-500: #1d77cc;
+  --color-m365-600: #0f6cbd;
+  --color-m365-700: #0c579a;
+  --color-m365-800: #0a4579;
+
+  --color-copilot-50: #f4f1fe;
+  --color-copilot-100: #e8e1fd;
+  --color-copilot-200: #d2c4fb;
+  --color-copilot-400: #9b7bf2;
+  --color-copilot-500: #8058e8;
+  --color-copilot-600: #6c3fd8;
+  --color-copilot-700: #5a30b8;
+  --color-copilot-800: #47268f;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white text-slate-800 antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink-950 tracking-tight;
+  }
+  ::selection {
+    @apply bg-m365-100 text-ink-950;
+  }
+}
+
+@utility container-x {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m365-600 disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-ink-950 text-white hover:bg-ink-800;
+}
+@utility btn-accent {
+  @apply btn bg-m365-600 text-white hover:bg-m365-700;
+}
+@utility btn-ghost {
+  @apply btn bg-white text-ink-950 ring-1 ring-slate-200 hover:bg-slate-50;
+}
+@utility btn-sm {
+  @apply px-3.5 py-1.5 text-xs;
+}
+@utility eyebrow {
+  @apply text-xs font-semibold tracking-[0.16em] text-m365-600 uppercase;
+}
+@utility card {
+  @apply rounded-2xl bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ring-1 ring-slate-200/80;
+}
+@utility input {
+  @apply block w-full rounded-xl border-0 bg-white px-3.5 py-2.5 text-sm text-ink-950 ring-1 ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-m365-600 focus:outline-none;
+}
+@utility label {
+  @apply mb-1.5 block text-sm font-medium text-slate-700;
+}
+@utility prose-lite {
+  & p {
+    @apply mb-4 leading-relaxed text-slate-600;
+  }
+}
