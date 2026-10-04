@@ -16,10 +16,16 @@ function secret() {
   return new TextEncoder().encode(s);
 }
 
+/** Hash ze scripts/hash-password.mjs je kvůli znakům „$“ v .env zakódovaný jako „b64:…“. */
+function passwordHash(): string {
+  const raw = (process.env.ADMIN_PASSWORD_HASH ?? "").trim();
+  return raw.startsWith("b64:") ? Buffer.from(raw.slice(4), "base64").toString("utf8") : raw;
+}
+
 /** V režimu vývoje bez nastaveného hesla lze použít admin / admin. */
 export async function verifyCredentials(email: string, password: string): Promise<boolean> {
   const expectedEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
-  const hash = process.env.ADMIN_PASSWORD_HASH ?? "";
+  const hash = passwordHash();
   if (!hash) {
     return process.env.NODE_ENV !== "production" && email === "admin" && password === "admin";
   }

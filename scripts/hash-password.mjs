@@ -5,7 +5,7 @@ if (!pwd) {
   console.error('Použití: node scripts/hash-password.mjs "heslo"');
   process.exit(1);
 }
-const hash = bcrypt.hashSync(pwd, 12);
-console.log(hash);
-console.log("\nDo .env vložte (včetně uvozovek, kvůli znakům $):");
-console.log(`ADMIN_PASSWORD_HASH='${hash}'`);
+// bcrypt hash obsahuje znaky „$“, které Next.js v souboru .env rozbije (bere je jako proměnné),
+// proto ho vypíšeme zakódovaný v base64 s předponou „b64:“.
+const hash = "b64:" + Buffer.from(bcrypt.hashSync(pwd, 12)).toString("base64");
+console.log(`ADMIN_PASSWORD_HASH=${hash}`);

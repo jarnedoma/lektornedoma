@@ -29,7 +29,7 @@ návštěvník ──►   │ DNS lektornedoma.cz            │
 na disku, takže nepotřebujete žádnou další službu. Na start stačí nejmenší tarif.
 
 1. **Účet a aplikace** – na [rosti.cz](https://rosti.cz) vytvořte aplikaci typu **Node.js**
-   (verze 22 nebo novější).
+   (verze 22.9 nebo novější).
 2. **Kód** – v aplikaci nastavte nasazování z GitHubu (repozitář `jarnedoma/lektornedoma`,
    hlavní větev), nebo kód nahrajte přes SSH/git podle
    [dokumentace Roští](https://docs.rosti.cz/cs/).
@@ -37,7 +37,7 @@ na disku, takže nepotřebujete žádnou další službu. Na start stačí nejme
    ```
    DATABASE_URL=file:./data/lektornedoma.db
    ADMIN_EMAIL=skoleni@lektornedoma.cz
-   ADMIN_PASSWORD_HASH='…'      # viz krok 4
+   ADMIN_PASSWORD_HASH=b64:…    # viz krok 4
    AUTH_SECRET=…                # viz krok 4
    SITE_URL=https://www.lektornedoma.cz
    SMTP_HOST=…  SMTP_PORT=465  SMTP_USER=web@lektornedoma.cz  SMTP_PASS=…
@@ -46,7 +46,7 @@ na disku, takže nepotřebujete žádnou další službu. Na start stačí nejme
    ```
 4. **Heslo a tajný klíč** – v terminálu aplikace:
    ```bash
-   node scripts/hash-password.mjs "VaseSilneHeslo"     # → ADMIN_PASSWORD_HASH
+   node scripts/hash-password.mjs "VaseSilneHeslo"     # vypíše řádek ADMIN_PASSWORD_HASH=b64:…
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # → AUTH_SECRET
    ```
 5. **Instalace, databáze, build:**
