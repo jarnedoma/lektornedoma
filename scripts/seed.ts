@@ -2,6 +2,9 @@
  * Naplní prázdnou databázi výchozími daty (kategorie, katalog kurzů, ukázkové termíny,
  * videokurzy a ukázkové reference). Spouští se: npm run db:seed
  * Pokud už databáze obsahuje kurzy, seed nic neudělá (použijte --force pro smazání a nové naplnění).
+ *
+ * --jen-katalog  pro ostrý provoz: vloží jen oblasti, kurzy a (skryté) videokurzy –
+ *                žádné ukázkové termíny, reference ani rezervace.
  */
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -14,6 +17,7 @@ const client = createClient({
 const db = drizzle(client, { schema });
 
 const force = process.argv.includes("--force");
+const catalogOnly = process.argv.includes("--jen-katalog");
 
 const existing = await db.select({ id: schema.courses.id }).from(schema.courses).limit(1);
 if (existing.length && !force) {
@@ -108,6 +112,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-pro-pokrocile",
+    legacyId: 11, // detail-kurzu?id=11 na starém webu
     title: "Excel pro pokročilé",
     subtitle: "Pokročilé funkce, analýza a automatizace",
     categoryId: cat.excel,
@@ -122,6 +127,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-funkce-a-vzorce",
+    legacyId: 9, // detail-kurzu?id=9 na starém webu
     title: "Excel – funkce a vzorce",
     subtitle: "Jednoduché i složité funkce pochopitelně",
     categoryId: cat.excel,
@@ -135,6 +141,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-kontingencni-tabulky",
+    legacyId: 7, // detail-kurzu?id=7 na starém webu
     title: "Excel – kontingenční tabulky",
     subtitle: "Přehledné reporty jedním z nejsilnějších nástrojů Excelu",
     categoryId: cat.excel,
@@ -149,6 +156,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-grafy-a-diagramy",
+    legacyId: 12, // detail-kurzu?id=12 na starém webu
     title: "Excel – jak na poutavé grafy a diagramy",
     subtitle: "Vizualizace, které čtenáři pochopí na první pohled",
     categoryId: cat.excel,
@@ -162,6 +170,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-ziskavani-analyza-prezentace-dat",
+    legacyId: 18, // detail-kurzu?id=18 na starém webu
     title: "Excel – získávání, analýza a prezentace dat",
     subtitle: "Power Query, datový model a reporting",
     categoryId: cat.excel,
@@ -175,6 +184,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-v-prikladech",
+    legacyId: 30, // detail-kurzu?id=30 na starém webu
     title: "Excel v příkladech aneb příklady z praxe",
     subtitle: "Řešíme reálné úlohy z firem",
     categoryId: cat.excel,
@@ -199,6 +209,7 @@ const courseRows: C[] = [
   }),
   course({
     slug: "excel-krizem-krazem",
+    legacyId: 19, // detail-kurzu?id=19 na starém webu
     title: "Excel křížem krážem (od A po Z)",
     subtitle: "Ucelený 10denní program od začátečníka po pokročilého",
     categoryId: cat.excel,
@@ -365,7 +376,7 @@ const nextWorkday = (date: string) => {
 let vbaStart = iso(56);
 while (new Date(vbaStart + "T00:00:00Z").getUTCDay() === 5) vbaStart = nextWorkday(vbaStart);
 
-await db.insert(schema.terms).values([
+if (!catalogOnly) await db.insert(schema.terms).values([
   { courseId: cid["excel-kontingencni-tabulky"], startDate: iso(14), location: "Praha – Karlín", capacity: 10 },
   { courseId: cid["microsoft-365-copilot-prakticky"], startDate: iso(21), location: "Online (Microsoft Teams)", isOnline: true, capacity: 15 },
   { courseId: cid["excel-pro-pokrocile"], startDate: iso(28), location: "Brno", capacity: 10 },
@@ -383,7 +394,7 @@ await db.insert(schema.terms).values([
   { courseId: cid["excel-makra-a-vba"], startDate: vbaStart, endDate: nextWorkday(vbaStart), location: "Praha", capacity: 8 },
 ]);
 
-await db.insert(schema.videoCourses).values([
+const videoRows: (typeof schema.videoCourses.$inferInsert)[] = [
   {
     slug: "excel-od-zakladu",
     title: "Excel od základů",
@@ -422,9 +433,11 @@ await db.insert(schema.videoCourses).values([
     isFeatured: true,
     sortOrder: 3,
   },
-]);
+];
+// V ostrém provozu jsou ukázkové videokurzy skryté, dokud je neupravíte a nezveřejníte
+await db.insert(schema.videoCourses).values(videoRows.map((v) => ({ ...v, isPublished: !catalogOnly })));
 
-await db.insert(schema.testimonials).values([
+if (!catalogOnly) await db.insert(schema.testimonials).values([
   {
     kind: "individual",
     authorName: "Ukázková reference",
@@ -455,7 +468,7 @@ await db.insert(schema.testimonials).values([
 ]);
 
 // Ukázka kalendáře: jedna potvrzená a jedna nepotvrzená rezervace + ručně obsazený den
-await db.insert(schema.bookings).values([
+if (!catalogOnly) await db.insert(schema.bookings).values([
   {
     dateFrom: iso(9),
     dateTo: iso(9),
@@ -489,9 +502,13 @@ await db.insert(schema.bookings).values([
   },
 ]);
 
-await db.insert(schema.calendarDays).values([
+if (!catalogOnly) await db.insert(schema.calendarDays).values([
   { date: iso(11), status: "busy", note: "Dovolená (ukázka)" },
   { date: iso(10), status: "auto", city: "Olomouc", note: "Ukázka: jen informace o městě, den zůstává volný" },
 ]);
 
-console.log(`Hotovo: ${cats.length} kategorií, ${insertedCourses.length} kurzů, ukázkové termíny, videokurzy, reference a rezervace.`);
+console.log(
+  catalogOnly
+    ? `Hotovo: ${cats.length} oblasti, ${insertedCourses.length} kurzů a skryté videokurzy (bez ukázkových dat).`
+    : `Hotovo: ${cats.length} oblasti, ${insertedCourses.length} kurzů, ukázkové termíny, videokurzy, reference a rezervace.`,
+);

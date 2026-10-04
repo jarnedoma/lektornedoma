@@ -47,6 +47,7 @@ export function CourseForm({ course, categories }: { course?: Course; categories
             <F label="Cena za osobu – veřejný termín (Kč)" hint="Prázdné = na dotaz"><input name="priceOpen" inputMode="numeric" defaultValue={c?.priceOpen ?? ""} className="input" /></F>
             <F label="URL adresa (slug)" hint="Vyplní se automaticky z názvu."><input name="slug" defaultValue={c?.slug} className="input" /></F>
             <F label="Pořadí v oblasti"><input name="sortOrder" type="number" defaultValue={c?.sortOrder ?? 0} className="input" /></F>
+            <F label="ID na starém webu" hint="Číslo z adresy detail-kurzu?id=… – staré odkazy se přesměrují sem."><input name="legacyId" type="number" min={1} defaultValue={c?.legacyId ?? ""} className="input" /></F>
           </div>
         </Panel>
         <Panel title="Zobrazení">

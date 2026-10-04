@@ -89,6 +89,7 @@ export async function saveCourse(fd: FormData) {
     isFeatured: b(fd, "isFeatured"),
     isPublished: b(fd, "isPublished"),
     sortOrder: nn(fd, "sortOrder"),
+    legacyId: n(fd, "legacyId"),
     updatedAt: new Date(),
   };
   if (courseId) {

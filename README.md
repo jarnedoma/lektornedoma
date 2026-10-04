@@ -61,14 +61,16 @@ node scripts/hash-password.mjs "VaseSilneHeslo"
 
 ## Nasazení
 
-Možnosti:
+Podrobný postup krok za krokem je v **[docs/NASAZENI.md](docs/NASAZENI.md)**: doména a e-maily zůstávají u WEDOSu, web poběží na Roští.cz (doporučeno) nebo na Vercel Pro + Turso. Návod popisuje i přepnutí DNS bez dopadu na e-maily a přesměrování starých adres.
 
-1. **Vercel + Turso** – `DATABASE_URL=libsql://…turso.io`, `DATABASE_AUTH_TOKEN=…`, ostatní proměnné z `.env.example`. Schéma nahrajete `npm run db:push`, data `npm run db:seed`.
-2. **VPS / vlastní server** – `npm run build && npm start`, databáze jako soubor v `data/` (zálohujte ho).
+Užitečné příkazy:
 
-> **WEDOS:** sdílený webhosting WEDOS (LowCost / NoLimit) podporuje jen PHP + MySQL, Node.js na něm nepoběží. Pro tuto aplikaci je potřeba WEDOS VPS, nebo jiný hosting s Node.js (doména a e-maily mohou zůstat u WEDOSu).
-
-Po aktualizaci aplikace vždy spusťte `npm run db:push` – doplní nové sloupce do databáze (data zůstanou).
+| Příkaz | Co dělá |
+|---|---|
+| `npm run db:push` | vytvoří / aktualizuje tabulky (data zůstanou) |
+| `npm run db:katalog` | ostrý provoz: vloží oblasti a kurzy bez ukázkových dat |
+| `npm run db:seed` | vývoj: katalog + ukázkové termíny, reference, rezervace |
+| `npm run db:zaloha` | záloha SQLite databáze do `data/zalohy/` |
 
 Povinné proměnné v produkci: `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `AUTH_SECRET` (≥ 32 znaků), `DATABASE_URL`.
 

@@ -45,9 +45,11 @@ export const courses = sqliteTable(
     isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false),
     isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
+    /** ID kurzu na starém webu – staré odkazy /detail-kurzu?id=… se přesměrují sem */
+    legacyId: integer("legacy_id"),
     ...timestamps,
   },
-  (t) => [index("courses_category_idx").on(t.categoryId)],
+  (t) => [index("courses_category_idx").on(t.categoryId), index("courses_legacy_idx").on(t.legacyId)],
 );
 
 /** Konkrétní termín kurzu – vlastní nebo partnerský. */
